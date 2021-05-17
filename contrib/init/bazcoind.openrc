@@ -1,0 +1,92 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/bazcoin/.bazcoin" ]; then
+	BAZCOIND_DEFAULT_DATADIR="/var/lib/bazcoin/.bazcoin"
+else
+	BAZCOIND_DEFAULT_DATADIR="/var/lib/bazcoind"
+fi
+
+BAZCOIND_CONFIGFILE=${BAZCOIND_CONFIGFILE:-/etc/bazcoin/bazcoin.conf}
+BAZCOIND_PIDDIR=${BAZCOIND_PIDDIR:-/var/run/bazcoind}
+BAZCOIND_PIDFILE=${BAZCOIND_PIDFILE:-${BAZCOIND_PIDDIR}/bazcoind.pid}
+BAZCOIND_DATADIR=${BAZCOIND_DATADIR:-${BAZCOIND_DEFAULT_DATADIR}}
+BAZCOIND_USER=${BAZCOIND_USER:-${BAZCOIN_USER:-bazcoin}}
+BAZCOIND_GROUP=${BAZCOIND_GROUP:-bazcoin}
+BAZCOIND_BIN=${BAZCOIND_BIN:-/usr/bin/bazcoind}
+BAZCOIND_NICE=${BAZCOIND_NICE:-${NICELEVEL:-0}}
+BAZCOIND_OPTS="${BAZCOIND_OPTS:-${BAZCOIN_OPTS}}"
+
+name="BazCoin Core Daemon"
+description="BazCoin cryptocurrency P2P network daemon"
+
+command="/usr/bin/bazcoind"
+command_args="-pid=\"${BAZCOIND_PIDFILE}\" \
+		-conf=\"${BAZCOIND_CONFIGFILE}\" \
+		-datadir=\"${BAZCOIND_DATADIR}\" \
+		-daemon \
+		${BAZCOIND_OPTS}"
+
+required_files="${BAZCOIND_CONFIGFILE}"
+start_stop_daemon_args="-u ${BAZCOIND_USER} \
+			-N ${BAZCOIND_NICE} -w 2000"
+pidfile="${BAZCOIND_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${BAZCOIND_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${BAZCOIND_USER}:${BAZCOIND_GROUP}" \
+	"${BAZCOIND_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${BAZCOIND_USER}:${BAZCOIND_GROUP}" \
+	"${BAZCOIND_PIDDIR}"
+
+	checkpath -f \
+	-o ${BAZCOIND_USER}:${BAZCOIND_GROUP} \
+	-m 0660 \
+	${BAZCOIND_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${BAZCOIND_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run bazcoind."
+		eerror "The setting must appear in ${BAZCOIND_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"BazCoin Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

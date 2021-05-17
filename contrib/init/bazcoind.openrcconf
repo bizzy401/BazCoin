@@ -1,0 +1,33 @@
+# /etc/conf.d/bazcoind: config file for /etc/init.d/bazcoind
+
+# Config file location
+#BAZCOIND_CONFIGFILE="/etc/bazcoin/bazcoin.conf"
+
+# What directory to write pidfile to?  (created and owned by $BAZCOIND_USER)
+#BAZCOIND_PIDDIR="/var/run/bazcoind"
+
+# What filename to give the pidfile
+#BAZCOIND_PIDFILE="${BAZCOIND_PIDDIR}/bazcoind.pid"
+
+# Where to write bazcoind data (be mindful that the blockchain is large)
+#BAZCOIND_DATADIR="/var/lib/bazcoind"
+
+# User and group to own bazcoind process
+#BAZCOIND_USER="bazcoin"
+#BAZCOIND_GROUP="bazcoin"
+
+# Path to bazcoind executable
+#BAZCOIND_BIN="/usr/bin/bazcoind"
+
+# Nice value to run bazcoind under
+#BAZCOIND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#BAZCOIND_OPTS=""
+
+# The timeout in seconds OpenRC will wait for bazcoind to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+BAZCOIND_SIGTERM_TIMEOUT=600
